@@ -146,10 +146,8 @@ def main():
 
         # Get the device and the depth sensor to configure hardware settings
         device = pipeline_profile.get_device()
-        
-        # Pause the recording initially until we get a GPS fix
-        recorder = device.as_recorder()
-        recorder.pause()
+        # We removed recorder.pause() here to prevent RealSense .bag file corruption.
+        # It will record continuously, but the CSV will log exactly when the fix happens.
         is_recording = False
         total_record_time = 0.0
         current_session_start = None
@@ -174,19 +172,17 @@ def main():
 
         # Continuously record streams
         while True:
-            # Check GNSS fix status and toggle recording
+            # Check GNSS fix status to update visual recording timer
             if gnss_recorder.has_fix and not is_recording:
-                recorder.resume()
                 is_recording = True
                 current_session_start = time.time()
-                print("\nSatellite fix obtained. Recording started!")
+                print("\nSatellite fix obtained. (Camera was already recording to bag)")
             elif not gnss_recorder.has_fix and is_recording:
-                recorder.pause()
                 is_recording = False
                 if current_session_start:
                     total_record_time += time.time() - current_session_start
                     current_session_start = None
-                print("\nSatellite fix lost. Recording paused!")
+                print("\nSatellite fix lost.")
 
             # Wait for the next set of frames
             frames = pipeline.wait_for_frames()
