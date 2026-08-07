@@ -65,6 +65,9 @@ class GNSSRecorder(threading.Thread):
                     with open(self.csv_path, 'a', newline='') as f:
                         writer = csv.writer(f)
                         writer.writerow(row)
+                        
+                    # Print the data to terminal so the user can see it live
+                    print(f"[GNSS] Time: {time_str} | Fix: {self.has_fix} | Sats: {data.get('numSatellites', 0)} | Lat: {lat} | Lon: {lon}")
             except Exception:
                 pass
                 
