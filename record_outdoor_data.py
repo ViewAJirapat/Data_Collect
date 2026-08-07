@@ -17,6 +17,7 @@ class GNSSRecorder(threading.Thread):
         self.running = True
         self.serial_conn = None
         self.daemon = True
+        self.has_fix = False
         try:
             self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
             with open(self.csv_path, 'w', newline='') as f:
@@ -33,19 +34,32 @@ class GNSSRecorder(threading.Thread):
             try:
                 line = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                 if line:
-                    data = json.loads(line)
-                    date_time = data.get("time", "")
+                    try:
+                        data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                        
+                    # Ignore status messages or update state
+                    if "status" in data:
+                        continue
+                        
+                    self.has_fix = data.get("fix", False)
+                    date_time = data.get("time", "") or ""
                     date_str = date_time.split(" ")[0] if " " in date_time else ""
                     time_str = date_time.split(" ")[1] if " " in date_time else date_time
+                    
+                    lat = data.get("latitude")
+                    lon = data.get("longitude")
+                    alt = data.get("altitude")
                     
                     row = [
                         date_str,
                         time_str,
                         data.get("numSatellites", 0),
-                        data.get("fix", False),
-                        data.get("latitude", 0.0),
-                        data.get("longitude", 0.0),
-                        data.get("altitude", 0.0)
+                        self.has_fix,
+                        lat if lat is not None else "",
+                        lon if lon is not None else "",
+                        alt if alt is not None else ""
                     ]
                     
                     with open(self.csv_path, 'a', newline='') as f:
@@ -101,12 +115,8 @@ def main():
     print(f"Initializing stream. Recording will be saved to: {bag_path}")
     print(f"Initializing GNSS. Recording will be saved to: {csv_path}")
 
-    # Set the appropriate serial port for your OS
-    import platform
-    if platform.system() == "Windows":
-        serial_port = "COM3"  # <-- CHANGE THIS TO YOUR SPRESENSE COM PORT ON WINDOWS
-    else:
-        serial_port = "/dev/ttyUSB0"
+    # Set the GNSS serial port
+    serial_port = "/dev/ttyUSB0"
 
     # Start GNSS recording
     gnss_recorder = GNSSRecorder(serial_port, 115200, csv_path)
@@ -118,6 +128,12 @@ def main():
 
         # Get the device and the depth sensor to configure hardware settings
         device = pipeline_profile.get_device()
+        
+        # Pause the recording initially until we get a GPS fix
+        recorder = device.as_recorder()
+        recorder.pause()
+        is_recording = False
+        
         depth_sensor = device.first_depth_sensor()
 
         # 1. Disable the IR emitter for outdoor environments
@@ -134,10 +150,19 @@ def main():
         align_to = rs.stream.color
         align = rs.align(align_to)
 
-        print("Recording started. Press 'q' or 'ESC' on the window to stop.")
+        print("Waiting for GNSS Fix... Press 'q' or 'ESC' on the window to stop.")
 
         # Continuously record streams
         while True:
+            # Check GNSS fix status and toggle recording
+            if gnss_recorder.has_fix and not is_recording:
+                recorder.resume()
+                is_recording = True
+                print("\nSatellite fix obtained. Recording started!")
+            elif not gnss_recorder.has_fix and is_recording:
+                recorder.pause()
+                is_recording = False
+                print("\nSatellite fix lost. Recording paused!")
 
             # Wait for the next set of frames
             frames = pipeline.wait_for_frames()
@@ -151,6 +176,12 @@ def main():
                 color_image = np.asanyarray(color_frame.get_data())
                 # Resize for display purposes to fit on most screens
                 display_image = cv2.resize(color_image, (960, 540))
+                
+                # Add text overlay indicating status
+                status_text = "Recording (GNSS Fix)" if is_recording else "Waiting for GNSS Fix..."
+                color = (0, 255, 0) if is_recording else (0, 0, 255)
+                cv2.putText(display_image, status_text, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+                
                 cv2.imshow('Realtime Stream (Color)', display_image)
             
             # Update the cv2 window and allow manual exit with 'q' or 'ESC'
