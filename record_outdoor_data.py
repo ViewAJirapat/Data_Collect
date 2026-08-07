@@ -43,14 +43,16 @@ class GNSSRecorder(threading.Thread):
                     if "status" in data:
                         continue
                         
-                    self.has_fix = data.get("fix", False)
-                    date_time = data.get("time", "") or ""
-                    date_str = date_time.split(" ")[0] if " " in date_time else ""
-                    time_str = date_time.split(" ")[1] if " " in date_time else date_time
-                    
                     lat = data.get("latitude")
                     lon = data.get("longitude")
                     alt = data.get("altitude")
+                    
+                    # Strictly require valid coordinates before considering it a true "fix" for camera recording
+                    self.has_fix = data.get("fix", False) and (lat is not None) and (lon is not None) and (alt is not None)
+                    
+                    date_time = data.get("time", "") or ""
+                    date_str = date_time.split(" ")[0] if " " in date_time else ""
+                    time_str = date_time.split(" ")[1] if " " in date_time else date_time
                     
                     usec = data.get("usec")
                     speed = data.get("speed_ms")
