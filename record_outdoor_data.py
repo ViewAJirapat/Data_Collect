@@ -118,12 +118,12 @@ def main():
     # Enable recording to the bag file
     config.enable_record_to_file(bag_path)
 
-    # Configure streams: Color, Depth, and Infrared (Left/Right)
-    # Note: Max resolution usually differs between color and depth sensors.
-    # 1920x1080 is typical max for Color. 1280x720 (or 1280x800) is typical max for Depth/IR.
-    color_width, color_height = 1920, 1080
-    depth_width, depth_height = 1280, 720
-    fps = 30
+    # Note: Recording Color + Depth + 2x IR at high resolution requires massive disk write speeds!
+    # If the video freezes, it means the laptop's hard drive or USB cannot keep up.
+    # Lowered to 1280x720 (Color) and 848x480 (Depth/IR) at 15 FPS for stability.
+    color_width, color_height = 1280, 720
+    depth_width, depth_height = 848, 480
+    fps = 15
 
     config.enable_stream(rs.stream.color, color_width, color_height, rs.format.bgr8, fps)
     config.enable_stream(rs.stream.depth, depth_width, depth_height, rs.format.z16, fps)
