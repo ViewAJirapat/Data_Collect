@@ -198,7 +198,10 @@ def main():
         # Cleanly stop the pipeline and release resources
         gnss_recorder.stop()
         gnss_recorder.join(timeout=2.0)
-        pipeline.stop()
+        try:
+            pipeline.stop()
+        except RuntimeError:
+            pass # pipeline was never started
         cv2.destroyAllWindows()
         print(f"=========================================")
         print(f"Recording finished! Data successfully saved to {bag_path} and {csv_path}")
