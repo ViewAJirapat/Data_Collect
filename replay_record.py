@@ -42,7 +42,11 @@ def main():
     try:
         while True:
             # Wait for a coherent set of frames
-            frames = pipeline.wait_for_frames()
+            try:
+                frames = pipeline.wait_for_frames()
+            except RuntimeError:
+                print("\nEnd of playback (or no frames arrived).")
+                break
 
             # Align the depth frame to the color frame
             aligned_frames = align.process(frames)

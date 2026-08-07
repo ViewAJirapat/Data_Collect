@@ -82,7 +82,7 @@ class GNSSRecorder(threading.Thread):
                         writer.writerow(row)
                         
                     # Print the data to terminal so the user can see it live
-                    print(f"[GNSS] Time: {time_str} | Fix: {self.has_fix} | Sats: {data.get('numSatellites', 0)} | Lat: {lat} | Lon: {lon}")
+                    print(f"[GNSS] Time: {time_str} | Fix: {self.has_fix} | Sats: {data.get('numSatellites', 0)} | Lat: {lat} | Lon: {lon} | Alt: {alt}")
             except Exception:
                 pass
                 
@@ -151,6 +151,8 @@ def main():
         recorder = device.as_recorder()
         recorder.pause()
         is_recording = False
+        total_record_time = 0.0
+        current_session_start = None
         
         depth_sensor = device.first_depth_sensor()
 
@@ -176,10 +178,14 @@ def main():
             if gnss_recorder.has_fix and not is_recording:
                 recorder.resume()
                 is_recording = True
+                current_session_start = time.time()
                 print("\nSatellite fix obtained. Recording started!")
             elif not gnss_recorder.has_fix and is_recording:
                 recorder.pause()
                 is_recording = False
+                if current_session_start:
+                    total_record_time += time.time() - current_session_start
+                    current_session_start = None
                 print("\nSatellite fix lost. Recording paused!")
 
             # Wait for the next set of frames
@@ -196,8 +202,14 @@ def main():
                 display_image = cv2.resize(color_image, (960, 540))
                 
                 # Add text overlay indicating status
-                status_text = "Recording (GNSS Fix)" if is_recording else "Waiting for GNSS Fix..."
-                color = (0, 255, 0) if is_recording else (0, 0, 255)
+                if is_recording:
+                    elapsed = total_record_time + (time.time() - current_session_start)
+                    mins, secs = divmod(int(elapsed), 60)
+                    status_text = f"Recording (GNSS Fix) - {mins:02d}:{secs:02d}"
+                    color = (0, 255, 0)
+                else:
+                    status_text = "Waiting for GNSS Fix..."
+                    color = (0, 0, 255)
                 cv2.putText(display_image, status_text, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
                 
                 cv2.imshow('Realtime Stream (Color)', display_image)
