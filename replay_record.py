@@ -33,7 +33,12 @@ def main():
     print("Press 'q' or 'ESC' on the video window to stop playback.")
 
     # Start streaming from the file
-    pipeline.start(config)
+    pipeline_profile = pipeline.start(config)
+    
+    # Disable real-time playback so it skips over the "paused" empty gaps instantly
+    device = pipeline_profile.get_device()
+    playback = device.as_playback()
+    playback.set_real_time(False)
 
     # Create an alignment object to align the depth frames to color frames
     align_to = rs.stream.color
@@ -77,8 +82,8 @@ def main():
             cv2.namedWindow('RealSense Playback (Color & Depth)', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('RealSense Playback (Color & Depth)', images)
 
-            # Wait for a key press (1ms delay allows the frame to render)
-            key = cv2.waitKey(1)
+            # Wait for a key press (33ms delay simulates ~30 FPS playback)
+            key = cv2.waitKey(33)
             
             # Press 'q' or 'ESC' to close the image window
             if key & 0xFF == ord('q') or key == 27:
