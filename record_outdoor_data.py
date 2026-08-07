@@ -22,7 +22,7 @@ class GNSSRecorder(threading.Thread):
             self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
             with open(self.csv_path, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['date', 'time', 'numSatellites', 'fix', 'latitude', 'longitude', 'altitude'])
+                writer.writerow(['date', 'time', 'numSatellites', 'fix', 'latitude', 'longitude', 'altitude', 'usec', 'speed_ms', 'heading', 'pdop', 'hdop', 'vdop'])
         except Exception as e:
             print(f"Warning: Failed to open GNSS serial port {self.port}: {e}")
             
@@ -52,6 +52,13 @@ class GNSSRecorder(threading.Thread):
                     lon = data.get("longitude")
                     alt = data.get("altitude")
                     
+                    usec = data.get("usec")
+                    speed = data.get("speed_ms")
+                    heading = data.get("heading")
+                    pdop = data.get("pdop")
+                    hdop = data.get("hdop")
+                    vdop = data.get("vdop")
+                    
                     row = [
                         date_str,
                         time_str,
@@ -59,7 +66,13 @@ class GNSSRecorder(threading.Thread):
                         self.has_fix,
                         lat if lat is not None else "",
                         lon if lon is not None else "",
-                        alt if alt is not None else ""
+                        alt if alt is not None else "",
+                        usec if usec is not None else "",
+                        speed if speed is not None else "",
+                        heading if heading is not None else "",
+                        pdop if pdop is not None else "",
+                        hdop if hdop is not None else "",
+                        vdop if vdop is not None else ""
                     ]
                     
                     with open(self.csv_path, 'a', newline='') as f:
