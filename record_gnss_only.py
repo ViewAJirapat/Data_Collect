@@ -20,8 +20,8 @@ def main():
     # Handle Ctrl+C gracefully
     signal.signal(signal.SIGINT, signal_handler)
     
-    # Define the directory where the data will be saved (./data)
-    data_dir = os.path.join(os.getcwd(), "data")
+    # Define the directory where the data will be saved (./data_gnss_only)
+    data_dir = os.path.join(os.getcwd(), "data_gnss_only")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 

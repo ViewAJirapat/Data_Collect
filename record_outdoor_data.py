@@ -119,11 +119,10 @@ def main():
     config.enable_record_to_file(bag_path)
 
     # Note: Recording Color + Depth + 2x IR at high resolution requires massive disk write speeds!
-    # If the video freezes, it means the laptop's hard drive or USB cannot keep up.
-    # Lowered to 1280x720 (Color) and 848x480 (Depth/IR) at 15 FPS for stability.
+    # Lowering the FPS to 6 and resolution to 720p ensures maximum stability on older hard drives.
     color_width, color_height = 1280, 720
-    depth_width, depth_height = 848, 480
-    fps = 15
+    depth_width, depth_height = 1280, 720
+    fps = 6
 
     config.enable_stream(rs.stream.color, color_width, color_height, rs.format.bgr8, fps)
     config.enable_stream(rs.stream.depth, depth_width, depth_height, rs.format.z16, fps)
